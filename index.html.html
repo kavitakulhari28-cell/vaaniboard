@@ -1,0 +1,405 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>VaaniBoard — Voice-First Task Console</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#12151A;
+    --panel:#1B2028;
+    --panel-2:#20262F;
+    --border:#262D38;
+    --amber:#FF8A3D;
+    --teal:#4FD1C5;
+    --muted-blue:#5C6673;
+    --text:#F2F0EA;
+    --text-muted:#8891A0;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    background:
+      radial-gradient(ellipse at top, rgba(255,138,61,0.05), transparent 55%),
+      var(--bg);
+    color:var(--text);
+    font-family:'Inter',sans-serif;
+    min-height:100vh;
+  }
+  .mono{font-family:'JetBrains Mono',monospace;}
+  .display{font-family:'Space Grotesk',sans-serif;}
+
+  .wrap{max-width:1100px;margin:0 auto;padding:48px 24px 80px;}
+
+  .eyebrow{
+    font-size:11px;letter-spacing:0.18em;text-transform:uppercase;
+    color:var(--amber);font-weight:500;
+  }
+  h1{
+    font-size:clamp(32px,5vw,48px);
+    margin:6px 0 8px;font-weight:600;letter-spacing:-0.01em;
+  }
+  .sub{color:var(--text-muted);font-size:15px;max-width:520px;line-height:1.5;}
+
+  /* console */
+  .console{
+    margin-top:44px;
+    background:var(--panel);
+    border:1px solid var(--border);
+    border-radius:20px;
+    padding:32px;
+    display:flex;flex-direction:column;align-items:center;gap:20px;
+  }
+
+  .mic-btn{
+    position:relative;
+    width:96px;height:96px;
+    border-radius:50%;
+    border:1px solid var(--border);
+    background:var(--panel-2);
+    cursor:pointer;
+    display:flex;align-items:center;justify-content:center;
+    transition:box-shadow .3s ease, border-color .3s ease, transform .15s ease;
+  }
+  .mic-btn:hover{transform:scale(1.03);}
+  .mic-btn.listening{
+    border-color:var(--amber);
+    box-shadow:0 0 0 8px rgba(255,138,61,0.08), 0 0 30px rgba(255,138,61,0.25);
+  }
+  .mic-btn.thinking{
+    border-color:var(--teal);
+    box-shadow:0 0 0 8px rgba(79,209,197,0.08), 0 0 30px rgba(79,209,197,0.2);
+  }
+  .mic-icon{width:28px;height:28px;fill:var(--text);z-index:2;}
+  .mic-btn.listening .mic-icon{fill:var(--amber);}
+  .mic-btn.thinking .mic-icon{fill:var(--teal);}
+
+  .waveform{
+    display:flex;align-items:center;justify-content:center;gap:3px;
+    height:36px;
+  }
+  .bar{
+    width:3px;border-radius:2px;background:var(--muted-blue);
+    height:6px;transition:height .08s ease, background .2s ease;
+  }
+  .waveform.active .bar{background:var(--amber);}
+
+  .transcript-line{
+    min-height:22px;
+    font-size:14px;color:var(--text-muted);
+    display:flex;align-items:center;gap:8px;
+  }
+  .cursor{
+    width:7px;height:14px;background:var(--amber);
+    animation:blink 1s step-end infinite;
+  }
+  @keyframes blink{50%{opacity:0;}}
+
+  .hints{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;margin-top:4px;}
+  .hint-chip{
+    font-size:12px;color:var(--text-muted);
+    border:1px solid var(--border);border-radius:999px;
+    padding:6px 12px;cursor:pointer;background:transparent;
+    transition:border-color .2s ease, color .2s ease;
+  }
+  .hint-chip:hover{border-color:var(--teal);color:var(--text);}
+
+  /* board */
+  .board{
+    margin-top:40px;
+    display:grid;
+    grid-template-columns:repeat(3,1fr);
+    gap:20px;
+  }
+  @media(max-width:800px){.board{grid-template-columns:1fr;}}
+
+  .col{
+    background:var(--panel);
+    border:1px solid var(--border);
+    border-radius:16px;
+    padding:18px;
+    min-height:220px;
+  }
+  .col-head{
+    display:flex;align-items:center;justify-content:space-between;
+    margin-bottom:14px;
+  }
+  .col-title{
+    font-size:12px;letter-spacing:0.1em;text-transform:uppercase;
+    color:var(--text-muted);font-weight:500;
+  }
+  .col-count{
+    font-size:11px;color:var(--text-muted);
+    background:var(--panel-2);border-radius:999px;
+    padding:2px 8px;
+  }
+  .empty-state{
+    color:var(--muted-blue);font-size:13px;font-style:italic;
+    padding:24px 4px;text-align:center;
+  }
+
+  .card{
+    background:var(--panel-2);
+    border:1px solid var(--border);
+    border-left:3px solid var(--muted-blue);
+    border-radius:10px;
+    padding:12px 14px;margin-bottom:10px;
+    animation:slideIn .35s ease both;
+  }
+  .card.high{border-left-color:var(--amber);}
+  .card.medium{border-left-color:var(--teal);}
+  .card.low{border-left-color:var(--muted-blue);}
+  @keyframes slideIn{
+    from{opacity:0;transform:translateY(6px);}
+    to{opacity:1;transform:translateY(0);}
+  }
+  .card-title{font-size:14px;line-height:1.4;}
+  .priority-tag{
+    display:inline-flex;align-items:center;gap:5px;
+    margin-top:8px;font-size:10px;letter-spacing:0.06em;
+    text-transform:uppercase;color:var(--text-muted);
+  }
+  .dot{width:6px;height:6px;border-radius:50%;background:var(--muted-blue);}
+  .card.high .dot{background:var(--amber);}
+  .card.medium .dot{background:var(--teal);}
+
+  .footer-note{
+    margin-top:28px;text-align:center;font-size:12px;color:var(--muted-blue);
+  }
+</style>
+</head>
+<body>
+
+<div class="wrap">
+  <div class="eyebrow">VOICE CONSOLE</div>
+  <h1 class="display">VaaniBoard</h1>
+  <p class="sub">Speak your task. Watch the board build itself. No clicking, no forms — just talk and the interface listens.</p>
+
+  <div class="console">
+    <button class="mic-btn" id="micBtn" aria-label="Start listening">
+      <svg class="mic-icon" viewBox="0 0 24 24"><path d="M12 15a3 3 0 0 0 3-3V6a3 3 0 0 0-6 0v6a3 3 0 0 0 3 3zm5-3a5 5 0 0 1-10 0H5a7 7 0 0 0 6 6.92V21h2v-2.08A7 7 0 0 0 19 12h-2z"/></svg>
+    </button>
+
+    <div class="waveform" id="waveform">
+      <!-- bars injected by JS -->
+    </div>
+
+    <div class="transcript-line mono" id="transcriptLine">
+      <span id="transcriptText">Tap the mic and say something, like "add a task to design the login page"</span>
+    </div>
+
+    <div class="hints">
+      <button class="hint-chip" data-text="Add a high priority task to design the login page">"Add a high priority task to design the login page"</button>
+      <button class="hint-chip" data-text="Move design the login page to in progress">"Move design the login page to in progress"</button>
+      <button class="hint-chip" data-text="Mark design the login page as done">"Mark design the login page as done"</button>
+    </div>
+  </div>
+
+  <div class="board" id="board">
+    <div class="col" data-col="todo">
+      <div class="col-head"><span class="col-title">To Do</span><span class="col-count mono" id="count-todo">0</span></div>
+      <div class="col-body" id="col-todo"></div>
+    </div>
+    <div class="col" data-col="inprogress">
+      <div class="col-head"><span class="col-title">In Progress</span><span class="col-count mono" id="count-inprogress">0</span></div>
+      <div class="col-body" id="col-inprogress"></div>
+    </div>
+    <div class="col" data-col="done">
+      <div class="col-head"><span class="col-title">Done</span><span class="col-count mono" id="count-done">0</span></div>
+      <div class="col-body" id="col-done"></div>
+    </div>
+  </div>
+
+  <div class="footer-note mono">Built for Frontend Battle 2026 — VaaniBoard</div>
+</div>
+
+<script>
+let board = { todo: [], inprogress: [], done: [] };
+let idCounter = 1;
+
+const waveform = document.getElementById('waveform');
+const BAR_COUNT = 28;
+for (let i = 0; i < BAR_COUNT; i++) {
+  const bar = document.createElement('div');
+  bar.className = 'bar';
+  waveform.appendChild(bar);
+}
+const bars = document.querySelectorAll('.bar');
+
+function renderBoard() {
+  ['todo','inprogress','done'].forEach(col => {
+    const container = document.getElementById('col-' + col);
+    const count = document.getElementById('count-' + col);
+    const tasks = board[col] || [];
+    count.textContent = tasks.length;
+    if (tasks.length === 0) {
+      container.innerHTML = '<div class="empty-state">No tasks yet — say something to add one</div>';
+      return;
+    }
+    container.innerHTML = tasks.map(t => `
+      <div class="card ${t.priority || 'low'}">
+        <div class="card-title">${escapeHtml(t.title)}</div>
+        <div class="priority-tag"><span class="dot"></span>${(t.priority || 'low')}</div>
+      </div>
+    `).join('');
+  });
+}
+
+function escapeHtml(str) {
+  const div = document.createElement('div');
+  div.textContent = str;
+  return div.innerHTML;
+}
+
+renderBoard();
+
+// --- Audio-reactive waveform ---
+let audioCtx, analyser, dataArray, rafId;
+async function startAudioVisualizer() {
+  try {
+    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    const source = audioCtx.createMediaStreamSource(stream);
+    analyser = audioCtx.createAnalyser();
+    analyser.fftSize = 64;
+    source.connect(analyser);
+    dataArray = new Uint8Array(analyser.frequencyBinCount);
+    drawWaveform();
+    return stream;
+  } catch (e) {
+    console.warn('Mic audio visualization unavailable', e);
+    return null;
+  }
+}
+function drawWaveform() {
+  analyser.getByteFrequencyData(dataArray);
+  bars.forEach((bar, i) => {
+    const v = dataArray[i % dataArray.length] || 0;
+    bar.style.height = Math.max(6, (v / 255) * 34) + 'px';
+  });
+  rafId = requestAnimationFrame(drawWaveform);
+}
+function stopAudioVisualizer() {
+  if (rafId) cancelAnimationFrame(rafId);
+  bars.forEach(bar => bar.style.height = '6px');
+  if (audioCtx) audioCtx.close();
+}
+
+// --- Speech recognition ---
+const micBtn = document.getElementById('micBtn');
+const transcriptText = document.getElementById('transcriptText');
+const waveformEl = document.getElementById('waveform');
+const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+let recognition = null;
+let listening = false;
+
+if (SpeechRecognition) {
+  recognition = new SpeechRecognition();
+  recognition.continuous = false;
+  recognition.interimResults = true;
+  recognition.lang = 'en-IN';
+
+  recognition.onresult = (e) => {
+    let text = '';
+    for (let i = 0; i < e.results.length; i++) text += e.results[i][0].transcript;
+    transcriptText.textContent = text;
+  };
+
+  recognition.onend = async () => {
+    listening = false;
+    micBtn.classList.remove('listening');
+    waveformEl.classList.remove('active');
+    stopAudioVisualizer();
+    const finalText = transcriptText.textContent.trim();
+    if (finalText && !finalText.startsWith('Tap the mic')) {
+      await processCommand(finalText);
+    }
+  };
+
+  recognition.onerror = () => {
+    listening = false;
+    micBtn.classList.remove('listening');
+    waveformEl.classList.remove('active');
+    stopAudioVisualizer();
+  };
+}
+
+micBtn.addEventListener('click', async () => {
+  if (!SpeechRecognition) {
+    const typed = prompt('Voice recognition not supported in this browser. Type your command instead:');
+    if (typed) processCommand(typed);
+    return;
+  }
+  if (listening) {
+    recognition.stop();
+    return;
+  }
+  listening = true;
+  micBtn.classList.add('listening');
+  waveformEl.classList.add('active');
+  transcriptText.textContent = 'Listening...';
+  await startAudioVisualizer();
+  recognition.start();
+});
+
+document.querySelectorAll('.hint-chip').forEach(chip => {
+  chip.addEventListener('click', () => {
+    const text = chip.getAttribute('data-text');
+    transcriptText.textContent = text;
+    processCommand(text);
+  });
+});
+
+// --- AI parsing via Claude API ---
+async function processCommand(commandText) {
+  micBtn.classList.add('thinking');
+  transcriptText.textContent = commandText + ' — thinking...';
+
+  const systemPrompt = `You are the engine behind VaaniBoard, a voice-controlled kanban board.
+You receive the current board state as JSON and a spoken command transcript.
+Update the board according to the command: add tasks, move tasks between columns (todo, inprogress, done), mark tasks done, remove tasks, rename tasks, or change priority (high, medium, low).
+Match tasks by closest title similarity when the command refers to an existing task.
+Respond with ONLY valid JSON, no markdown fences, no explanation, matching exactly this schema:
+{"board": {"todo": [{"id": string, "title": string, "priority": "high"|"medium"|"low"}], "inprogress": [...], "done": [...]}}`;
+
+  const userMsg = `Current board: ${JSON.stringify(board)}\nCommand: "${commandText}"`;
+
+  try {
+    const response = await fetch("https://api.anthropic.com/v1/messages", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        model: "claude-sonnet-4-6",
+        max_tokens: 1000,
+        system: systemPrompt,
+        messages: [{ role: "user", content: userMsg }]
+      })
+    });
+    const data = await response.json();
+    const textBlock = (data.content || []).find(b => b.type === 'text');
+    let raw = textBlock ? textBlock.text : '{}';
+    raw = raw.replace(/```json|```/g, '').trim();
+    const parsed = JSON.parse(raw);
+    if (parsed.board) {
+      board = {
+        todo: parsed.board.todo || [],
+        inprogress: parsed.board.inprogress || [],
+        done: parsed.board.done || []
+      };
+      renderBoard();
+      transcriptText.textContent = 'Board updated ✓  — try another command';
+    } else {
+      transcriptText.textContent = "Didn't catch a valid update — try again";
+    }
+  } catch (err) {
+    console.error('Command processing error:', err);
+    transcriptText.textContent = "Something went wrong parsing that — try again";
+  } finally {
+    micBtn.classList.remove('thinking');
+  }
+}
+</script>
+</body>
+</html>
