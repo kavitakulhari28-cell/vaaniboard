@@ -43,7 +43,6 @@
   }
   .sub{color:var(--text-muted);font-size:15px;max-width:520px;line-height:1.5;}
 
-  /* console */
   .console{
     margin-top:44px;
     background:var(--panel);
@@ -106,7 +105,6 @@
   }
   .hint-chip:hover{border-color:var(--teal);color:var(--text);}
 
-  /* board */
   .board{
     margin-top:40px;
     display:grid;
@@ -182,9 +180,7 @@
       <svg class="mic-icon" viewBox="0 0 24 24"><path d="M12 15a3 3 0 0 0 3-3V6a3 3 0 0 0-6 0v6a3 3 0 0 0 3 3zm5-3a5 5 0 0 1-10 0H5a7 7 0 0 0 6 6.92V21h2v-2.08A7 7 0 0 0 19 12h-2z"/></svg>
     </button>
 
-    <div class="waveform" id="waveform">
-      <!-- bars injected by JS -->
-    </div>
+    <div class="waveform" id="waveform"></div>
 
     <div class="transcript-line mono" id="transcriptLine">
       <span id="transcriptText">Tap the mic and say something, like "add a task to design the login page"</span>
@@ -217,7 +213,6 @@
 
 <script>
 let board = { todo: [], inprogress: [], done: [] };
-let idCounter = 1;
 
 const waveform = document.getElementById('waveform');
 const BAR_COUNT = 28;
@@ -255,7 +250,6 @@ function escapeHtml(str) {
 
 renderBoard();
 
-// --- Audio-reactive waveform ---
 let audioCtx, analyser, dataArray, rafId;
 async function startAudioVisualizer() {
   try {
@@ -287,7 +281,6 @@ function stopAudioVisualizer() {
   if (audioCtx) audioCtx.close();
 }
 
-// --- Speech recognition ---
 const micBtn = document.getElementById('micBtn');
 const transcriptText = document.getElementById('transcriptText');
 const waveformEl = document.getElementById('waveform');
@@ -352,7 +345,6 @@ document.querySelectorAll('.hint-chip').forEach(chip => {
   });
 });
 
-// --- AI parsing via Claude API ---
 async function processCommand(commandText) {
   micBtn.classList.add('thinking');
   transcriptText.textContent = commandText + ' — thinking...';
