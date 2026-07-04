@@ -5,251 +5,711 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>VaaniBoard — Voice-First Task Console</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
   :root{
-    --bg:#12151A;
-    --panel:#1B2028;
-    --panel-2:#20262F;
-    --border:#262D38;
-    --amber:#FF8A3D;
-    --teal:#4FD1C5;
-    --muted-blue:#5C6673;
-    --text:#F2F0EA;
-    --text-muted:#8891A0;
+    --bg:#0A0A14;
+    --sidebar-bg:#0D0D1B;
+    --panel:rgba(255,255,255,0.035);
+    --panel-solid:#12121F;
+    --border:rgba(255,255,255,0.08);
+    --border-strong:rgba(255,255,255,0.15);
+    --purple:#8B5CF6;
+    --purple-glow:rgba(139,92,246,0.35);
+    --cyan:#22D3EE;
+    --cyan-glow:rgba(34,211,238,0.3);
+    --pink:#EC4899;
+    --pink-bg:rgba(236,72,153,0.15);
+    --orange:#F59E0B;
+    --orange-bg:rgba(245,158,11,0.15);
+    --green:#10B981;
+    --green-bg:rgba(16,185,129,0.15);
+    --text:#F1F0FF;
+    --text-muted:#8A8AA3;
+    --sidebar-w:230px;
+    --insight-w:300px;
   }
   *{box-sizing:border-box;}
+  html{scroll-behavior:smooth;}
   body{
     margin:0;
-    background:
-      radial-gradient(ellipse at top, rgba(255,138,61,0.05), transparent 55%),
-      var(--bg);
+    background:var(--bg);
     color:var(--text);
     font-family:'Inter',sans-serif;
     min-height:100vh;
   }
   .mono{font-family:'JetBrains Mono',monospace;}
   .display{font-family:'Space Grotesk',sans-serif;}
-
-  .wrap{max-width:1100px;margin:0 auto;padding:48px 24px 80px;}
-
-  .eyebrow{
-    font-size:11px;letter-spacing:0.18em;text-transform:uppercase;
-    color:var(--amber);font-weight:500;
+  .grad-text{
+    background:linear-gradient(90deg,var(--purple),var(--cyan));
+    -webkit-background-clip:text;background-clip:text;color:transparent;
   }
-  h1{
-    font-size:clamp(32px,5vw,48px);
-    margin:6px 0 8px;font-weight:600;letter-spacing:-0.01em;
-  }
-  .sub{color:var(--text-muted);font-size:15px;max-width:520px;line-height:1.5;}
 
+  ::-webkit-scrollbar{width:9px;}
+  ::-webkit-scrollbar-track{background:transparent;}
+  ::-webkit-scrollbar-thumb{background:var(--panel-solid);border-radius:8px;}
+
+  .app{display:flex;min-height:100vh;}
+
+  /* ===== SIDEBAR ===== */
+  .sidebar{
+    width:var(--sidebar-w);flex-shrink:0;
+    background:var(--sidebar-bg);border-right:1px solid var(--border);
+    padding:22px 16px;display:flex;flex-direction:column;
+    position:sticky;top:0;height:100vh;
+  }
+  .brand{display:flex;align-items:center;gap:9px;padding:4px 8px 26px;}
+  .brand svg{width:22px;height:22px;flex-shrink:0;}
+  .brand span{font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:17px;}
+  .nav-list{list-style:none;padding:0;margin:0;display:flex;flex-direction:column;gap:3px;flex:1;}
+  .nav-item{
+    display:flex;align-items:center;gap:11px;padding:10px 12px;border-radius:10px;
+    color:var(--text-muted);font-size:13.5px;font-weight:500;cursor:pointer;
+    transition:background .2s ease,color .2s ease;
+  }
+  .nav-item svg{width:17px;height:17px;flex-shrink:0;}
+  .nav-item:hover{background:rgba(255,255,255,0.04);color:var(--text);}
+  .nav-item.active{
+    background:linear-gradient(90deg, rgba(139,92,246,0.18), rgba(34,211,238,0.06));
+    color:var(--text);border:1px solid var(--border);
+  }
+  .theme-toggle{
+    display:flex;align-items:center;justify-content:space-between;
+    padding:12px;border-top:1px solid var(--border);margin-top:10px;font-size:13px;color:var(--text-muted);
+  }
+  .switch{width:38px;height:21px;background:var(--panel-solid);border:1px solid var(--border);border-radius:999px;position:relative;cursor:pointer;flex-shrink:0;}
+  .switch::after{content:'';position:absolute;top:2px;left:2px;width:15px;height:15px;border-radius:50%;background:var(--text-muted);transition:transform .25s ease,background .25s ease;}
+  .switch.on{background:linear-gradient(90deg,var(--purple),var(--cyan));}
+  .switch.on::after{transform:translateX(16px);background:#fff;}
+
+  /* ===== MAIN LAYOUT ===== */
+  .main-scroll{flex:1;min-width:0;display:flex;}
+  .content{flex:1;min-width:0;padding:26px 28px 60px;}
+  .insight{width:var(--insight-w);flex-shrink:0;border-left:1px solid var(--border);padding:26px 20px 60px;display:flex;flex-direction:column;gap:18px;}
+
+  .topbar{display:flex;justify-content:flex-end;align-items:center;gap:16px;margin-bottom:26px;}
+  .icon-btn{width:36px;height:36px;border-radius:10px;background:var(--panel);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--text-muted);position:relative;}
+  .icon-btn svg{width:16px;height:16px;}
+  .icon-btn .dot-badge{position:absolute;top:6px;right:6px;width:6px;height:6px;border-radius:50%;background:var(--pink);}
+  .profile{display:flex;align-items:center;gap:10px;padding:4px 10px 4px 4px;border-radius:999px;background:var(--panel);border:1px solid var(--border);cursor:pointer;}
+  .avatar{width:30px;height:30px;border-radius:50%;background:linear-gradient(135deg,var(--purple),var(--cyan));display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:#0A0A14;flex-shrink:0;}
+  .profile-name{font-size:12.5px;line-height:1.3;}
+  .profile-name b{font-weight:600;display:block;}
+  .profile-name small{color:var(--text-muted);font-size:11px;}
+
+  /* ===== HERO ===== */
+  .hero-row{display:flex;justify-content:space-between;align-items:flex-start;gap:20px;flex-wrap:wrap;margin-bottom:26px;}
+  .eyebrow{display:inline-flex;align-items:center;gap:6px;font-size:11px;letter-spacing:0.14em;text-transform:uppercase;color:var(--purple);font-weight:600;}
+  .eyebrow svg{width:13px;height:13px;}
+  h1.hero-title{font-family:'Space Grotesk',sans-serif;font-size:clamp(30px,4.5vw,42px);font-weight:700;margin:10px 0 8px;letter-spacing:-0.01em;}
+  .hero-sub{color:var(--text-muted);font-size:15px;max-width:480px;line-height:1.6;}
+
+  .ring-card{
+    background:var(--panel);border:1px solid var(--border);border-radius:18px;
+    padding:18px 22px;display:flex;align-items:center;gap:16px;min-width:280px;
+  }
+  .ring-wrap{position:relative;width:64px;height:64px;flex-shrink:0;filter:drop-shadow(0 0 10px var(--purple-glow));}
+  .ring-wrap svg{transform:rotate(-90deg);}
+  .ring-bg{fill:none;stroke:rgba(255,255,255,0.08);stroke-width:6;}
+  .ring-fg{fill:none;stroke:var(--purple);stroke-width:6;stroke-linecap:round;transition:stroke-dashoffset .6s cubic-bezier(.4,0,.2,1);}
+  .ring-pct{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:14px;font-family:'Space Grotesk',sans-serif;}
+  .ring-text b{font-family:'Space Grotesk',sans-serif;font-size:15px;}
+  .ring-text .sub2{font-size:12px;color:var(--text-muted);margin-top:3px;}
+  .ring-text .sub3{font-size:11.5px;color:var(--cyan);margin-top:2px;}
+
+  /* ===== CONSOLE ===== */
   .console{
-    margin-top:44px;
-    background:var(--panel);
-    border:1px solid var(--border);
-    border-radius:20px;
-    padding:32px;
-    display:flex;flex-direction:column;align-items:center;gap:20px;
+    background:var(--panel);border:1px solid var(--border);border-radius:22px;
+    padding:38px 30px;text-align:center;margin-bottom:28px;position:relative;
   }
+  .console-hint{font-family:'Space Grotesk',sans-serif;font-size:14px;color:var(--purple);margin-bottom:22px;}
+
+  .mic-stage{display:flex;align-items:center;justify-content:center;gap:0;position:relative;height:120px;}
+  .waveform{display:flex;align-items:center;gap:3px;flex:1;justify-content:flex-end;height:60px;padding-right:20px;}
+  .waveform.right{justify-content:flex-start;padding-right:0;padding-left:20px;}
+  .bar{width:3px;border-radius:3px;background:rgba(139,92,246,0.25);height:6px;transition:height .08s ease,background .2s ease;}
+  .waveform.active .bar{background:linear-gradient(180deg,var(--purple),var(--cyan));}
 
   .mic-btn{
-    position:relative;
-    width:96px;height:96px;
-    border-radius:50%;
-    border:1px solid var(--border);
-    background:var(--panel-2);
-    cursor:pointer;
-    display:flex;align-items:center;justify-content:center;
-    transition:box-shadow .3s ease, border-color .3s ease, transform .15s ease;
+    position:relative;width:96px;height:96px;border-radius:50%;flex-shrink:0;
+    background:var(--panel-solid);cursor:pointer;display:flex;align-items:center;justify-content:center;
+    border:2px solid transparent;
+    background-image:linear-gradient(var(--panel-solid),var(--panel-solid)),conic-gradient(from 0deg,var(--purple),var(--cyan),var(--purple));
+    background-origin:border-box;background-clip:content-box,border-box;
+    box-shadow:0 0 40px var(--purple-glow),0 8px 24px rgba(0,0,0,0.4);
+    transition:transform .15s ease,box-shadow .3s ease;
+    animation:breathe 3s ease-in-out infinite;
   }
-  .mic-btn:hover{transform:scale(1.03);}
-  .mic-btn.listening{
-    border-color:var(--amber);
-    box-shadow:0 0 0 8px rgba(255,138,61,0.08), 0 0 30px rgba(255,138,61,0.25);
-  }
-  .mic-btn.thinking{
-    border-color:var(--teal);
-    box-shadow:0 0 0 8px rgba(79,209,197,0.08), 0 0 30px rgba(79,209,197,0.2);
-  }
-  .mic-icon{width:28px;height:28px;fill:var(--text);z-index:2;}
-  .mic-btn.listening .mic-icon{fill:var(--amber);}
-  .mic-btn.thinking .mic-icon{fill:var(--teal);}
+  @keyframes breathe{0%,100%{box-shadow:0 0 30px var(--purple-glow),0 8px 24px rgba(0,0,0,.4);}50%{box-shadow:0 0 50px var(--cyan-glow),0 8px 28px rgba(0,0,0,.45);}}
+  .mic-btn:hover{transform:scale(1.05);}
+  .mic-btn.listening{animation:none;box-shadow:0 0 55px var(--purple-glow),0 0 0 10px rgba(139,92,246,0.12);}
+  .mic-btn.thinking{animation:none;box-shadow:0 0 55px var(--cyan-glow),0 0 0 10px rgba(34,211,238,0.12);}
+  .mic-icon{width:30px;height:30px;fill:var(--text);z-index:2;}
 
-  .waveform{
-    display:flex;align-items:center;justify-content:center;gap:3px;
-    height:36px;
-  }
-  .bar{
-    width:3px;border-radius:2px;background:var(--muted-blue);
-    height:6px;transition:height .08s ease, background .2s ease;
-  }
-  .waveform.active .bar{background:var(--amber);}
+  .transcript-line{margin-top:22px;font-size:14px;color:var(--text-muted);min-height:20px;}
+  .transcript-line.mono{font-family:'JetBrains Mono',monospace;font-size:13px;}
 
-  .transcript-line{
-    min-height:22px;
-    font-size:14px;color:var(--text-muted);
-    display:flex;align-items:center;gap:8px;
-  }
-  .cursor{
-    width:7px;height:14px;background:var(--amber);
-    animation:blink 1s step-end infinite;
-  }
-  @keyframes blink{50%{opacity:0;}}
-
-  .hints{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;margin-top:4px;}
+  .hints{display:flex;flex-wrap:wrap;gap:10px;justify-content:center;margin-top:20px;}
   .hint-chip{
-    font-size:12px;color:var(--text-muted);
-    border:1px solid var(--border);border-radius:999px;
-    padding:6px 12px;cursor:pointer;background:transparent;
-    transition:border-color .2s ease, color .2s ease;
+    display:flex;align-items:center;gap:7px;font-size:12.5px;color:var(--text);
+    border:1px solid var(--border);border-radius:999px;padding:9px 16px;cursor:pointer;
+    background:rgba(255,255,255,0.02);transition:border-color .25s,transform .15s,background .25s;
   }
-  .hint-chip:hover{border-color:var(--teal);color:var(--text);}
+  .hint-chip svg{width:14px;height:14px;flex-shrink:0;}
+  .hint-chip:nth-child(1) svg{color:var(--orange);}
+  .hint-chip:nth-child(2) svg{color:var(--cyan);}
+  .hint-chip:nth-child(3) svg{color:var(--green);}
+  .hint-chip:hover{border-color:var(--purple);transform:translateY(-2px);background:rgba(139,92,246,0.08);}
 
-  .board{
-    margin-top:40px;
-    display:grid;
-    grid-template-columns:repeat(3,1fr);
-    gap:20px;
+  .undo-row{margin-top:16px;}
+  .undo-btn{
+    font-size:12px;color:var(--text-muted);border:1px solid var(--border);border-radius:999px;
+    padding:7px 16px;cursor:pointer;background:rgba(255,255,255,0.02);display:inline-flex;align-items:center;gap:6px;
+    transition:border-color .2s,color .2s,opacity .2s,transform .15s;
   }
-  @media(max-width:800px){.board{grid-template-columns:1fr;}}
+  .undo-btn:hover:not(:disabled){border-color:var(--purple);color:var(--text);transform:translateY(-2px);}
+  .undo-btn:disabled{opacity:0.3;cursor:not-allowed;}
+  .undo-btn svg{width:12px;height:12px;fill:currentColor;}
 
-  .col{
-    background:var(--panel);
-    border:1px solid var(--border);
-    border-radius:16px;
-    padding:18px;
-    min-height:220px;
-  }
-  .col-head{
-    display:flex;align-items:center;justify-content:space-between;
-    margin-bottom:14px;
-  }
-  .col-title{
-    font-size:12px;letter-spacing:0.1em;text-transform:uppercase;
-    color:var(--text-muted);font-weight:500;
-  }
-  .col-count{
-    font-size:11px;color:var(--text-muted);
-    background:var(--panel-2);border-radius:999px;
-    padding:2px 8px;
-  }
-  .empty-state{
-    color:var(--muted-blue);font-size:13px;font-style:italic;
-    padding:24px 4px;text-align:center;
-  }
+  /* ===== KANBAN ===== */
+  .board{display:grid;grid-template-columns:repeat(3,1fr);gap:18px;}
+  @media(max-width:900px){.board{grid-template-columns:1fr;}}
+  .col{background:var(--panel);border:1px solid var(--border);border-radius:18px;padding:18px;min-height:180px;}
+  .col-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;}
+  .col-head-left{display:flex;align-items:center;gap:9px;}
+  .col-title{font-family:'Space Grotesk',sans-serif;font-weight:600;font-size:14.5px;}
+  .col-count{font-size:11px;font-weight:700;color:var(--text);background:rgba(255,255,255,0.08);border-radius:999px;padding:2px 9px;font-family:'JetBrains Mono',monospace;}
+  .col-add{width:22px;height:22px;border-radius:7px;background:rgba(255,255,255,0.04);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--text-muted);transition:background .2s,color .2s;}
+  .col-add:hover{background:rgba(139,92,246,0.15);color:var(--purple);}
+  .col-add svg{width:12px;height:12px;}
 
-  .card{
-    background:var(--panel-2);
-    border:1px solid var(--border);
-    border-left:3px solid var(--muted-blue);
-    border-radius:10px;
-    padding:12px 14px;margin-bottom:10px;
-    animation:slideIn .35s ease both;
+  .task-row{
+    display:flex;align-items:center;gap:11px;padding:11px 10px;border-radius:11px;margin-bottom:6px;
+    background:rgba(255,255,255,0.015);border:1px solid transparent;
+    animation:slideIn .35s cubic-bezier(.2,.8,.2,1) both;transition:background .2s,border-color .2s,transform .15s;
   }
-  .card.high{border-left-color:var(--amber);}
-  .card.medium{border-left-color:var(--teal);}
-  .card.low{border-left-color:var(--muted-blue);}
-  @keyframes slideIn{
-    from{opacity:0;transform:translateY(6px);}
-    to{opacity:1;transform:translateY(0);}
-  }
-  .card-title{font-size:14px;line-height:1.4;}
-  .priority-tag{
-    display:inline-flex;align-items:center;gap:5px;
-    margin-top:8px;font-size:10px;letter-spacing:0.06em;
-    text-transform:uppercase;color:var(--text-muted);
-  }
-  .dot{width:6px;height:6px;border-radius:50%;background:var(--muted-blue);}
-  .card.high .dot{background:var(--amber);}
-  .card.medium .dot{background:var(--teal);}
+  .task-row:hover{background:rgba(255,255,255,0.045);border-color:var(--border);transform:translateX(2px);}
+  @keyframes slideIn{from{opacity:0;transform:translateY(8px);}to{opacity:1;transform:translateY(0);}}
+  .check-circle{width:19px;height:19px;border-radius:50%;border:2px solid var(--muted-blue,#4A5064);flex-shrink:0;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:background .2s,border-color .2s;}
+  .check-circle.done{background:var(--green);border-color:var(--green);}
+  .check-circle svg{width:11px;height:11px;fill:#0A0A14;opacity:0;transition:opacity .15s;}
+  .check-circle.done svg{opacity:1;}
+  .task-body{flex:1;min-width:0;}
+  .task-title{font-size:13.5px;line-height:1.4;}
+  .task-title.strike{text-decoration:line-through;color:var(--text-muted);}
+  .priority-pill{display:inline-block;font-size:10px;font-weight:600;padding:2px 8px;border-radius:6px;margin-top:5px;letter-spacing:.02em;}
+  .priority-pill.high{background:var(--pink-bg);color:var(--pink);}
+  .priority-pill.medium{background:var(--orange-bg);color:var(--orange);}
+  .priority-pill.low{background:var(--green-bg);color:var(--green);}
+  .star-btn{width:22px;height:22px;flex-shrink:0;cursor:pointer;color:var(--text-muted);display:flex;align-items:center;justify-content:center;transition:color .2s,transform .15s;}
+  .star-btn:hover{transform:scale(1.15);}
+  .star-btn.starred{color:#FBBF24;}
+  .star-btn svg{width:15px;height:15px;fill:currentColor;}
 
-  .footer-note{
-    margin-top:28px;text-align:center;font-size:12px;color:var(--muted-blue);
+  .empty-col{color:var(--text-muted);font-size:12.5px;font-style:italic;padding:22px 4px;text-align:center;}
+  .empty-col-hero{color:var(--text-muted);font-size:12.5px;padding:34px 10px;text-align:center;line-height:1.6;}
+  .empty-col-hero .big{font-family:'Space Grotesk',sans-serif;font-size:15px;color:var(--text);font-style:normal;font-weight:600;display:block;margin-bottom:5px;}
+
+  .add-new-link{display:flex;align-items:center;gap:6px;font-size:12.5px;color:var(--cyan);cursor:pointer;padding:8px 4px;margin-top:2px;}
+  .add-new-link svg{width:13px;height:13px;}
+
+  /* ===== INSIGHT SIDEBAR ===== */
+  .insight-card{background:var(--panel);border:1px solid var(--border);border-radius:16px;padding:18px;}
+  .insight-title{display:flex;justify-content:space-between;align-items:center;font-family:'Space Grotesk',sans-serif;font-weight:600;font-size:14px;margin-bottom:14px;}
+  .insight-title small{font-size:11px;color:var(--purple);font-weight:500;cursor:pointer;}
+
+  .overview-row{display:flex;justify-content:space-between;gap:8px;}
+  .overview-item{display:flex;flex-direction:column;align-items:center;gap:7px;flex:1;}
+  .overview-icon{width:38px;height:38px;border-radius:50%;display:flex;align-items:center;justify-content:center;}
+  .overview-icon svg{width:16px;height:16px;}
+  .overview-icon.purple{background:rgba(139,92,246,0.18);color:var(--purple);}
+  .overview-icon.cyan{background:rgba(34,211,238,0.18);color:var(--cyan);}
+  .overview-icon.green{background:rgba(16,185,129,0.18);color:var(--green);}
+  .overview-num{font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:17px;}
+  .overview-label{font-size:10.5px;color:var(--text-muted);}
+
+  .activity-item{display:flex;gap:10px;padding:9px 0;border-bottom:1px solid var(--border);}
+  .activity-item:last-child{border-bottom:none;padding-bottom:0;}
+  .activity-icon{width:28px;height:28px;border-radius:50%;background:rgba(139,92,246,0.15);color:var(--purple);display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+  .activity-icon svg{width:13px;height:13px;}
+  .activity-text{font-size:12px;line-height:1.4;}
+  .activity-time{font-size:10.5px;color:var(--text-muted);margin-top:2px;}
+  .activity-empty{font-size:12px;color:var(--text-muted);font-style:italic;}
+
+  .streak-row{display:flex;align-items:center;gap:12px;margin-bottom:16px;}
+  .streak-flame{width:38px;height:38px;border-radius:12px;background:rgba(245,158,11,0.18);display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+  .streak-flame svg{width:19px;height:19px;color:var(--orange);}
+  .streak-num{font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:24px;line-height:1;}
+  .streak-label{font-size:11px;color:var(--text-muted);}
+  .week-bars{display:flex;justify-content:space-between;align-items:flex-end;height:60px;gap:6px;}
+  .week-bar-col{display:flex;flex-direction:column;align-items:center;gap:6px;flex:1;}
+  .week-bar{width:100%;max-width:16px;border-radius:5px;background:rgba(255,255,255,0.08);transition:height .4s ease,background .3s ease;}
+  .week-bar.filled{background:linear-gradient(180deg,var(--purple),var(--cyan));}
+  .week-day{font-size:9.5px;color:var(--text-muted);}
+
+  .confetti-piece{position:fixed;top:0;left:0;width:8px;height:8px;pointer-events:none;z-index:9999;border-radius:2px;}
+
+  .hamburger{display:none;}
+  @media(max-width:1050px){
+    .sidebar{position:fixed;left:-260px;z-index:50;transition:left .25s ease;}
+    .sidebar.open{left:0;}
+    .hamburger{display:flex;}
+  }
+  @media(max-width:900px){
+    .insight{display:none;}
+    .main-scroll{flex-direction:column;}
   }
 </style>
 </head>
 <body>
 
-<div class="wrap">
-  <div class="eyebrow">VOICE CONSOLE</div>
-  <h1 class="display">VaaniBoard</h1>
-  <p class="sub">Speak your task. Watch the board build itself. No clicking, no forms — just talk and the interface listens.</p>
-
-  <div class="console">
-    <button class="mic-btn" id="micBtn" aria-label="Start listening">
-      <svg class="mic-icon" viewBox="0 0 24 24"><path d="M12 15a3 3 0 0 0 3-3V6a3 3 0 0 0-6 0v6a3 3 0 0 0 3 3zm5-3a5 5 0 0 1-10 0H5a7 7 0 0 0 6 6.92V21h2v-2.08A7 7 0 0 0 19 12h-2z"/></svg>
-    </button>
-
-    <div class="waveform" id="waveform"></div>
-
-    <div class="transcript-line mono" id="transcriptLine">
-      <span id="transcriptText">Tap the mic and say something, like "add a task to design the login page"</span>
+<div class="app">
+  <nav class="sidebar" id="sidebar">
+    <div class="brand">
+      <svg viewBox="0 0 24 24" fill="none"><path d="M4 12h2l1.5-6 3 12 2-8 1.5 4H20" stroke="url(#g1)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><defs><linearGradient id="g1" x1="0" y1="0" x2="24" y2="0"><stop offset="0%" stop-color="#8B5CF6"/><stop offset="100%" stop-color="#22D3EE"/></linearGradient></defs></svg>
+      <span class="grad-text">VaaniBoard</span>
     </div>
-
-    <div class="hints">
-      <button class="hint-chip" data-text="Add a high priority task to design the login page">"Add a high priority task to design the login page"</button>
-      <button class="hint-chip" data-text="Move design the login page to in progress">"Move design the login page to in progress"</button>
-      <button class="hint-chip" data-text="Mark design the login page as done">"Mark design the login page as done"</button>
+    <ul class="nav-list">
+      <li class="nav-item active" data-scroll="hero"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg>Dashboard</li>
+      <li class="nav-item" data-scroll="col-todo"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="17" rx="2"/><path d="M8 2v4M16 2v4M8 11h5"/></svg>To Do</li>
+      <li class="nav-item" data-scroll="col-inprogress"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg>In Progress</li>
+      <li class="nav-item" data-scroll="col-done"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M8 12l3 3 5-6"/></svg>Done</li>
+      <li class="nav-item" data-scroll="insight-streak"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="17" rx="2"/><path d="M3 9h18M8 2v4M16 2v4"/></svg>Calendar</li>
+      <li class="nav-item" data-scroll="insight-overview"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19V9M12 19V4M20 19v-7"/></svg>Analytics</li>
+      <li class="nav-item" data-scroll="hero"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 15a3 3 0 0 0 3-3V6a3 3 0 0 0-6 0v6a3 3 0 0 0 3 3zm5-3a5 5 0 0 1-10 0"/></svg>Voice Console</li>
+    </ul>
+    <div class="theme-toggle">
+      <span>Dark Mode</span>
+      <div class="switch on" id="themeSwitch"></div>
     </div>
+  </nav>
+
+  <div class="main-scroll">
+    <main class="content" id="hero">
+      <div class="topbar">
+        <div class="icon-btn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg></div>
+        <div class="icon-btn"><span class="dot-badge"></span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8a6 6 0 10-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.7 21a2 2 0 01-3.4 0"/></svg></div>
+        <div class="profile">
+          <div class="avatar">KK</div>
+          <div class="profile-name"><b>Kavita Kulhari</b><small>Frontend Developer</small></div>
+        </div>
+      </div>
+
+      <div class="hero-row">
+        <div>
+          <span class="eyebrow"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 12h2l1.5-6 3 12 2-8 1.5 4H20"/></svg>Voice Console</span>
+          <h1 class="hero-title"><span class="grad-text">Speak</span> your task.</h1>
+          <p class="hero-sub">Watch the board build itself. No clicking, no forms — just talk and the interface listens.</p>
+        </div>
+        <div class="ring-card">
+          <div class="ring-wrap">
+            <svg width="64" height="64" viewBox="0 0 64 64">
+              <circle class="ring-bg" cx="32" cy="32" r="27"></circle>
+              <circle class="ring-fg" id="ringFg" cx="32" cy="32" r="27" stroke-dasharray="170" stroke-dashoffset="170"></circle>
+            </svg>
+            <div class="ring-pct" id="ringPct">0%</div>
+          </div>
+          <div class="ring-text">
+            <div><b id="statDone">0</b> of <b id="statTotal">0</b> tasks done</div>
+            <div class="sub2" id="statInProgress">0 tasks in progress</div>
+            <div class="sub3" id="statMotivation">Say something to begin</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="console">
+        <div class="console-hint mono" id="consoleHint">Tap to speak your first task</div>
+        <div class="mic-stage">
+          <div class="waveform" id="waveformLeft"></div>
+          <button class="mic-btn" id="micBtn" aria-label="Start listening">
+            <svg class="mic-icon" viewBox="0 0 24 24"><path d="M12 15a3 3 0 0 0 3-3V6a3 3 0 0 0-6 0v6a3 3 0 0 0 3 3zm5-3a5 5 0 0 1-10 0H5a7 7 0 0 0 6 6.92V21h2v-2.08A7 7 0 0 0 19 12h-2z"/></svg>
+          </button>
+          <div class="waveform right" id="waveformRight"></div>
+        </div>
+        <div class="transcript-line mono" id="transcriptLine">Try saying something like...</div>
+        <div class="hints">
+          <button class="hint-chip" data-text="Add a high priority task to design the login page"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 17.3l-6.2 3.3 1.2-6.9L2 9l7-1L12 1.5 15 8l7 1-5 4.7 1.2 6.9z"/></svg>Add a high priority task</button>
+          <button class="hint-chip" data-text="Move design the login page to in progress"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12a9 9 0 11-2.6-6.4"/><path d="M21 3v6h-6"/></svg>Move design to in progress</button>
+          <button class="hint-chip" data-text="Mark design the login page as done"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M8 12l3 3 5-6"/></svg>Mark login page as done</button>
+        </div>
+        <div class="undo-row">
+          <button class="undo-btn mono" id="undoBtn" disabled>
+            <svg viewBox="0 0 24 24"><path d="M12.5 8c-2.65 0-5.05.99-6.9 2.6L2 7v9h9l-3.62-3.62c1.39-1.16 3.16-1.88 5.12-1.88 3.54 0 6.55 2.31 7.6 5.5l2.37-.78C21.08 11.03 17.15 8 12.5 8z"/></svg>
+            Undo last action
+          </button>
+        </div>
+      </div>
+
+      <div class="board">
+        <div class="col" id="col-todo">
+          <div class="col-head">
+            <div class="col-head-left"><span class="col-title">To Do</span><span class="col-count mono" id="count-todo">0</span></div>
+            <div class="col-add" data-add="todo"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 5v14M5 12h14"/></svg></div>
+          </div>
+          <div class="col-body" id="body-todo"></div>
+          <div class="add-new-link" data-add="todo"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 5v14M5 12h14"/></svg>Add new task</div>
+        </div>
+        <div class="col" id="col-inprogress">
+          <div class="col-head">
+            <div class="col-head-left"><span class="col-title">In Progress</span><span class="col-count mono" id="count-inprogress">0</span></div>
+            <div class="col-add" data-add="inprogress"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 5v14M5 12h14"/></svg></div>
+          </div>
+          <div class="col-body" id="body-inprogress"></div>
+          <div class="add-new-link" data-add="inprogress"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 5v14M5 12h14"/></svg>Add new task</div>
+        </div>
+        <div class="col" id="col-done">
+          <div class="col-head">
+            <div class="col-head-left"><span class="col-title">Done</span><span class="col-count mono" id="count-done">0</span></div>
+            <div class="col-add" data-add="done"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 5v14M5 12h14"/></svg></div>
+          </div>
+          <div class="col-body" id="body-done"></div>
+          <div class="add-new-link" data-add="done"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 5v14M5 12h14"/></svg>Add new task</div>
+        </div>
+      </div>
+    </main>
+
+    <aside class="insight">
+      <div class="insight-card" id="insight-overview">
+        <div class="insight-title">Today's Overview</div>
+        <div class="overview-row">
+          <div class="overview-item">
+            <div class="overview-icon purple"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="17" rx="2"/><path d="M8 2v4M16 2v4M8 11h5"/></svg></div>
+            <div class="overview-num" id="ovTodo">0</div>
+            <div class="overview-label">To Do</div>
+          </div>
+          <div class="overview-item">
+            <div class="overview-icon cyan"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg></div>
+            <div class="overview-num" id="ovInProgress">0</div>
+            <div class="overview-label">In Progress</div>
+          </div>
+          <div class="overview-item">
+            <div class="overview-icon green"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M8 12l3 3 5-6"/></svg></div>
+            <div class="overview-num" id="ovDone">0</div>
+            <div class="overview-label">Done</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="insight-card">
+        <div class="insight-title">Recent Activity<small id="clearActivity">Clear</small></div>
+        <div id="activityList"><div class="activity-empty">No activity yet — say your first command</div></div>
+      </div>
+
+      <div class="insight-card" id="insight-streak">
+        <div class="insight-title">Productivity Streak</div>
+        <div class="streak-row">
+          <div class="streak-flame"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2c1 3-3 5-3 9a5 5 0 0010 0c0-1-.3-2-1-3 .3 2-1 3-2 3 1-3-1-5-1-6-.5 1.5-2 2-3-3z"/></svg></div>
+          <div>
+            <div class="streak-num"><span id="streakDays">0</span> <span style="font-size:13px;color:var(--text-muted);font-weight:500;">Days</span></div>
+          </div>
+        </div>
+        <div class="week-bars" id="weekBars"></div>
+      </div>
+    </aside>
   </div>
-
-  <div class="board" id="board">
-    <div class="col" data-col="todo">
-      <div class="col-head"><span class="col-title">To Do</span><span class="col-count mono" id="count-todo">0</span></div>
-      <div class="col-body" id="col-todo"></div>
-    </div>
-    <div class="col" data-col="inprogress">
-      <div class="col-head"><span class="col-title">In Progress</span><span class="col-count mono" id="count-inprogress">0</span></div>
-      <div class="col-body" id="col-inprogress"></div>
-    </div>
-    <div class="col" data-col="done">
-      <div class="col-head"><span class="col-title">Done</span><span class="col-count mono" id="count-done">0</span></div>
-      <div class="col-body" id="col-done"></div>
-    </div>
-  </div>
-
-  <div class="footer-note mono">Built for Frontend Battle 2026 — VaaniBoard</div>
 </div>
 
 <script>
 let board = { todo: [], inprogress: [], done: [] };
+let history = [];
+let prevDoneCount = 0;
+let activityLog = [];
+let taskIdCounter = 1;
 
-const waveform = document.getElementById('waveform');
-const BAR_COUNT = 28;
-for (let i = 0; i < BAR_COUNT; i++) {
-  const bar = document.createElement('div');
-  bar.className = 'bar';
-  waveform.appendChild(bar);
+const DAY_NAMES = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+
+// ---------- localStorage persistence ----------
+function saveState() {
+  try {
+    localStorage.setItem('vaaniboard_board', JSON.stringify(board));
+    localStorage.setItem('vaaniboard_activity', JSON.stringify(activityLog));
+    localStorage.setItem('vaaniboard_completions', localStorage.getItem('vaaniboard_completions') || '{}');
+  } catch (e) {}
 }
-const bars = document.querySelectorAll('.bar');
+function loadState() {
+  try {
+    const b = localStorage.getItem('vaaniboard_board');
+    const a = localStorage.getItem('vaaniboard_activity');
+    if (b) board = JSON.parse(b);
+    if (a) activityLog = JSON.parse(a);
+    prevDoneCount = board.done.length;
+  } catch (e) {}
+}
+function recordCompletionToday() {
+  try {
+    const key = new Date().toISOString().slice(0,10);
+    const raw = localStorage.getItem('vaaniboard_completions');
+    const data = raw ? JSON.parse(raw) : {};
+    data[key] = (data[key] || 0) + 1;
+    localStorage.setItem('vaaniboard_completions', JSON.stringify(data));
+  } catch (e) {}
+}
+function getCompletionsMap() {
+  try {
+    const raw = localStorage.getItem('vaaniboard_completions');
+    return raw ? JSON.parse(raw) : {};
+  } catch (e) { return {}; }
+}
+
+// ---------- Activity log ----------
+function logActivity(iconType, text) {
+  activityLog.unshift({ iconType, text, ts: Date.now() });
+  if (activityLog.length > 12) activityLog.pop();
+  renderActivity();
+  saveState();
+}
+function relativeTime(ts) {
+  const diff = Math.floor((Date.now() - ts) / 1000);
+  if (diff < 60) return 'just now';
+  if (diff < 3600) return Math.floor(diff/60) + ' mins ago';
+  if (diff < 86400) return Math.floor(diff/3600) + ' hours ago';
+  return Math.floor(diff/86400) + ' days ago';
+}
+const ACTIVITY_ICONS = {
+  add: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 15a3 3 0 0 0 3-3V6a3 3 0 0 0-6 0v6a3 3 0 0 0 3 3zm5-3a5 5 0 0 1-10 0"/></svg>',
+  move: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12a9 9 0 11-2.6-6.4"/><path d="M21 3v6h-6"/></svg>',
+  done: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M8 12l3 3 5-6"/></svg>',
+  undo: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 7v6h6M3 13a9 9 0 1015-6.7L21 9"/></svg>'
+};
+function renderActivity() {
+  const list = document.getElementById('activityList');
+  if (activityLog.length === 0) {
+    list.innerHTML = '<div class="activity-empty">No activity yet — say your first command</div>';
+    return;
+  }
+  list.innerHTML = activityLog.slice(0,6).map(a => `
+    <div class="activity-item">
+      <div class="activity-icon">${ACTIVITY_ICONS[a.iconType] || ACTIVITY_ICONS.add}</div>
+      <div>
+        <div class="activity-text">${escapeHtml(a.text)}</div>
+        <div class="activity-time">${relativeTime(a.ts)}</div>
+      </div>
+    </div>
+  `).join('');
+}
+document.getElementById('clearActivity').addEventListener('click', () => {
+  activityLog = [];
+  renderActivity();
+  saveState();
+});
+
+// ---------- Week streak ----------
+function renderStreak() {
+  const map = getCompletionsMap();
+  const container = document.getElementById('weekBars');
+  container.innerHTML = '';
+  const today = new Date();
+  let bars = [];
+  let streak = 0;
+  let counting = true;
+  for (let i = 6; i >= 0; i--) {
+    const d = new Date(today);
+    d.setDate(today.getDate() - i);
+    const key = d.toISOString().slice(0,10);
+    const count = map[key] || 0;
+    bars.push({ dayName: DAY_NAMES[d.getDay()], count, isToday: i === 0 });
+  }
+  for (let i = bars.length - 1; i >= 0; i--) {
+    if (bars[i].count > 0 && counting) streak++;
+    else counting = false;
+  }
+  document.getElementById('streakDays').textContent = streak;
+  const maxCount = Math.max(1, ...bars.map(b => b.count));
+  bars.forEach(b => {
+    const h = b.count === 0 ? 8 : Math.max(14, (b.count / maxCount) * 56);
+    const col = document.createElement('div');
+    col.className = 'week-bar-col';
+    col.innerHTML = `<div class="week-bar ${b.count > 0 ? 'filled' : ''}" style="height:${h}px"></div><div class="week-day" style="${b.isToday ? 'color:var(--purple);font-weight:700;' : ''}">${b.dayName[0]}</div>`;
+    container.appendChild(col);
+  });
+}
+
+// ---------- Board rendering ----------
+function isBoardEmpty() { return board.todo.length === 0 && board.inprogress.length === 0 && board.done.length === 0; }
+function escapeHtml(str) { const div = document.createElement('div'); div.textContent = str; return div.innerHTML; }
+
+function renderStats() {
+  const total = board.todo.length + board.inprogress.length + board.done.length;
+  const done = board.done.length;
+  const pct = total === 0 ? 0 : Math.round((done / total) * 100);
+  const RING_CIRC = 2 * Math.PI * 27;
+  const ringFg = document.getElementById('ringFg');
+  ringFg.setAttribute('stroke-dasharray', RING_CIRC);
+  ringFg.setAttribute('stroke-dashoffset', RING_CIRC - (RING_CIRC * pct / 100));
+  document.getElementById('ringPct').textContent = pct + '%';
+  document.getElementById('statDone').textContent = done;
+  document.getElementById('statTotal').textContent = total;
+  document.getElementById('statInProgress').textContent = board.inprogress.length + ' tasks in progress';
+  document.getElementById('statMotivation').textContent = total === 0 ? 'Say something to begin' : (pct >= 80 ? "Almost there — keep going!" : pct >= 40 ? "Keep it up! You're doing great." : "Let's get moving.");
+  document.getElementById('ovTodo').textContent = board.todo.length;
+  document.getElementById('ovInProgress').textContent = board.inprogress.length;
+  document.getElementById('ovDone').textContent = board.done.length;
+}
+
+function taskRow(t, colKey) {
+  const isDone = colKey === 'done';
+  return `
+    <div class="task-row" data-id="${t.id}" data-col="${colKey}">
+      <div class="check-circle ${isDone ? 'done' : ''}" data-toggle="${t.id}">
+        <svg viewBox="0 0 24 24"><path d="M5 13l4 4L19 7" stroke="#0A0A14" stroke-width="3" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </div>
+      <div class="task-body">
+        <div class="task-title ${isDone ? 'strike' : ''}">${escapeHtml(t.title)}</div>
+        <span class="priority-pill ${t.priority || 'low'}">${(t.priority || 'low').charAt(0).toUpperCase() + (t.priority || 'low').slice(1)}</span>
+      </div>
+      <div class="star-btn ${t.starred ? 'starred' : ''}" data-star="${t.id}">
+        <svg viewBox="0 0 24 24"><path d="M12 17.3l-6.2 3.3 1.2-6.9L2 9l7-1L12 1.5 15 8l7 1-5 4.7 1.2 6.9z"/></svg>
+      </div>
+    </div>
+  `;
+}
 
 function renderBoard() {
+  document.getElementById('consoleHint').style.display = isBoardEmpty() ? 'block' : 'none';
+
   ['todo','inprogress','done'].forEach(col => {
-    const container = document.getElementById('col-' + col);
+    const container = document.getElementById('body-' + col);
     const count = document.getElementById('count-' + col);
     const tasks = board[col] || [];
     count.textContent = tasks.length;
     if (tasks.length === 0) {
-      container.innerHTML = '<div class="empty-state">No tasks yet — say something to add one</div>';
+      if (col === 'todo' && isBoardEmpty()) {
+        container.innerHTML = '<div class="empty-col-hero"><span class="big">Your board is listening</span>Say something like "add a task to design the login page".</div>';
+      } else {
+        container.innerHTML = '<div class="empty-col">No tasks yet</div>';
+      }
       return;
     }
-    container.innerHTML = tasks.map(t => `
-      <div class="card ${t.priority || 'low'}">
-        <div class="card-title">${escapeHtml(t.title)}</div>
-        <div class="priority-tag"><span class="dot"></span>${(t.priority || 'low')}</div>
-      </div>
-    `).join('');
+    container.innerHTML = tasks.map(t => taskRow(t, col)).join('');
+  });
+
+  renderStats();
+  document.getElementById('undoBtn').disabled = history.length === 0;
+  bindRowEvents();
+  saveState();
+}
+
+function bindRowEvents() {
+  document.querySelectorAll('[data-toggle]').forEach(el => {
+    el.onclick = () => toggleDone(el.getAttribute('data-toggle'));
+  });
+  document.querySelectorAll('[data-star]').forEach(el => {
+    el.onclick = (e) => { e.stopPropagation(); toggleStar(el.getAttribute('data-star')); };
   });
 }
 
-function escapeHtml(str) {
-  const div = document.createElement('div');
-  div.textContent = str;
-  return div.innerHTML;
+function findTask(id) {
+  for (const col of ['todo','inprogress','done']) {
+    const t = board[col].find(x => String(x.id) === String(id));
+    if (t) return { task: t, col };
+  }
+  return null;
 }
 
-renderBoard();
+function toggleStar(id) {
+  const found = findTask(id);
+  if (!found) return;
+  found.task.starred = !found.task.starred;
+  renderBoard();
+}
 
+function snapshotBoard() { return JSON.parse(JSON.stringify(board)); }
+function pushHistory() {
+  history.push(snapshotBoard());
+  if (history.length > 20) history.shift();
+}
+
+function toggleDone(id) {
+  const found = findTask(id);
+  if (!found) return;
+  pushHistory();
+  const { task, col } = found;
+  board[col] = board[col].filter(x => String(x.id) !== String(id));
+  if (col === 'done') {
+    board.todo.push(task);
+    logActivity('undo', `Moved "${task.title}" back to To Do`);
+  } else {
+    board.done.push(task);
+    recordCompletionToday();
+    fireConfetti();
+    logActivity('done', `Marked "${task.title}" as Done`);
+  }
+  prevDoneCount = board.done.length;
+  renderBoard();
+  renderStreak();
+}
+
+document.querySelectorAll('[data-add]').forEach(el => {
+  el.addEventListener('click', () => {
+    const col = el.getAttribute('data-add');
+    const title = prompt('Task title:');
+    if (!title) return;
+    pushHistory();
+    board[col].push({ id: 'm' + (taskIdCounter++), title, priority: 'medium' });
+    logActivity('add', `Added "${title}" to ${col === 'todo' ? 'To Do' : col === 'inprogress' ? 'In Progress' : 'Done'}`);
+    renderBoard();
+  });
+});
+
+document.querySelectorAll('.nav-item[data-scroll]').forEach(item => {
+  item.addEventListener('click', () => {
+    document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active'));
+    item.classList.add('active');
+    const target = document.getElementById(item.getAttribute('data-scroll'));
+    if (target) target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  });
+});
+
+// ---------- Theme toggle (visual, dark stays default) ----------
+const themeSwitch = document.getElementById('themeSwitch');
+themeSwitch.addEventListener('click', () => {
+  themeSwitch.classList.toggle('on');
+  document.body.classList.toggle('light-mode');
+});
+
+// ---------- Waveform bars ----------
+const waveformLeft = document.getElementById('waveformLeft');
+const waveformRight = document.getElementById('waveformRight');
+const BAR_COUNT = 16;
+for (let i = 0; i < BAR_COUNT; i++) {
+  const b1 = document.createElement('div'); b1.className = 'bar'; waveformLeft.appendChild(b1);
+  const b2 = document.createElement('div'); b2.className = 'bar'; waveformRight.appendChild(b2);
+}
+const barsLeft = waveformLeft.querySelectorAll('.bar');
+const barsRight = waveformRight.querySelectorAll('.bar');
+
+// ---------- Confetti ----------
+function fireConfetti() {
+  const colors = ['#8B5CF6', '#22D3EE', '#EC4899', '#F1F0FF'];
+  for (let i = 0; i < 42; i++) {
+    const piece = document.createElement('div');
+    piece.className = 'confetti-piece';
+    piece.style.background = colors[i % colors.length];
+    piece.style.left = (40 + Math.random() * 20) + 'vw';
+    piece.style.top = '30vh';
+    const dx = (Math.random() - 0.5) * 520;
+    const dy = 300 + Math.random() * 300;
+    const rot = Math.random() * 720;
+    piece.style.transition = 'transform 1.1s cubic-bezier(.2,.6,.3,1), opacity 1.1s ease';
+    document.body.appendChild(piece);
+    requestAnimationFrame(() => {
+      piece.style.transform = `translate(${dx}px, ${dy}px) rotate(${rot}deg)`;
+      piece.style.opacity = '0';
+    });
+    setTimeout(() => piece.remove(), 1200);
+  }
+}
+
+// ---------- Text to speech ----------
+function speak(text) {
+  if (!('speechSynthesis' in window) || !text) return;
+  window.speechSynthesis.cancel();
+  const utter = new SpeechSynthesisUtterance(text);
+  utter.rate = 1.05;
+  window.speechSynthesis.speak(utter);
+}
+
+// ---------- Audio-reactive waveform ----------
 let audioCtx, analyser, dataArray, rafId;
 async function startAudioVisualizer() {
   try {
@@ -261,29 +721,24 @@ async function startAudioVisualizer() {
     source.connect(analyser);
     dataArray = new Uint8Array(analyser.frequencyBinCount);
     drawWaveform();
-    return stream;
-  } catch (e) {
-    console.warn('Mic audio visualization unavailable', e);
-    return null;
-  }
+  } catch (e) { console.warn('Mic visualization unavailable', e); }
 }
 function drawWaveform() {
   analyser.getByteFrequencyData(dataArray);
-  bars.forEach((bar, i) => {
-    const v = dataArray[i % dataArray.length] || 0;
-    bar.style.height = Math.max(6, (v / 255) * 34) + 'px';
-  });
+  barsLeft.forEach((bar, i) => { const v = dataArray[i % dataArray.length] || 0; bar.style.height = Math.max(6, (v/255)*54) + 'px'; });
+  barsRight.forEach((bar, i) => { const v = dataArray[(i+8) % dataArray.length] || 0; bar.style.height = Math.max(6, (v/255)*54) + 'px'; });
   rafId = requestAnimationFrame(drawWaveform);
 }
 function stopAudioVisualizer() {
   if (rafId) cancelAnimationFrame(rafId);
-  bars.forEach(bar => bar.style.height = '6px');
+  barsLeft.forEach(b => b.style.height = '6px');
+  barsRight.forEach(b => b.style.height = '6px');
   if (audioCtx) audioCtx.close();
 }
 
+// ---------- Speech recognition ----------
 const micBtn = document.getElementById('micBtn');
-const transcriptText = document.getElementById('transcriptText');
-const waveformEl = document.getElementById('waveform');
+const transcriptText = document.getElementById('transcriptLine');
 const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
 let recognition = null;
 let listening = false;
@@ -299,39 +754,34 @@ if (SpeechRecognition) {
     for (let i = 0; i < e.results.length; i++) text += e.results[i][0].transcript;
     transcriptText.textContent = text;
   };
-
   recognition.onend = async () => {
     listening = false;
     micBtn.classList.remove('listening');
-    waveformEl.classList.remove('active');
+    waveformLeft.classList.remove('active'); waveformRight.classList.remove('active');
     stopAudioVisualizer();
     const finalText = transcriptText.textContent.trim();
-    if (finalText && !finalText.startsWith('Tap the mic')) {
+    if (finalText && finalText !== 'Listening...' && finalText !== 'Try saying something like...') {
       await processCommand(finalText);
     }
   };
-
   recognition.onerror = () => {
     listening = false;
     micBtn.classList.remove('listening');
-    waveformEl.classList.remove('active');
+    waveformLeft.classList.remove('active'); waveformRight.classList.remove('active');
     stopAudioVisualizer();
   };
 }
 
 micBtn.addEventListener('click', async () => {
   if (!SpeechRecognition) {
-    const typed = prompt('Voice recognition not supported in this browser. Type your command instead:');
+    const typed = prompt('Voice recognition not supported. Type your command instead:');
     if (typed) processCommand(typed);
     return;
   }
-  if (listening) {
-    recognition.stop();
-    return;
-  }
+  if (listening) { recognition.stop(); return; }
   listening = true;
   micBtn.classList.add('listening');
-  waveformEl.classList.add('active');
+  waveformLeft.classList.add('active'); waveformRight.classList.add('active');
   transcriptText.textContent = 'Listening...';
   await startAudioVisualizer();
   recognition.start();
@@ -345,9 +795,23 @@ document.querySelectorAll('.hint-chip').forEach(chip => {
   });
 });
 
+document.getElementById('undoBtn').addEventListener('click', () => undoLastAction());
+function undoLastAction() {
+  if (history.length === 0) return;
+  board = history.pop();
+  prevDoneCount = board.done.length;
+  renderBoard();
+  transcriptText.textContent = 'Undone — back to previous state';
+  logActivity('undo', 'Undid the last action');
+  speak('Undone');
+}
+
 async function processCommand(commandText) {
+  if (/^\s*undo\b/i.test(commandText)) { undoLastAction(); return; }
+
   micBtn.classList.add('thinking');
   transcriptText.textContent = commandText + ' — thinking...';
+  const snapshot = snapshotBoard();
 
   try {
     const response = await fetch("/api/parse", {
@@ -357,15 +821,30 @@ async function processCommand(commandText) {
     });
     const data = await response.json();
     if (data.error) throw new Error(data.error);
-    const parsed = data;
-    if (parsed.board) {
-      board = {
-        todo: parsed.board.todo || [],
-        inprogress: parsed.board.inprogress || [],
-        done: parsed.board.done || []
-      };
+
+    if (data.board) {
+      history.push(snapshot);
+      if (history.length > 20) history.shift();
+
+      const oldDone = board.done.length;
+      board = { todo: data.board.todo || [], inprogress: data.board.inprogress || [], done: data.board.done || [] };
+
+      if (board.done.length > oldDone) {
+        fireConfetti();
+        recordCompletionToday();
+        logActivity('done', data.reply || 'Task marked as done');
+      } else if (board.todo.length + board.inprogress.length + board.done.length > snapshot.todo.length + snapshot.inprogress.length + snapshot.done.length) {
+        logActivity('add', data.reply || 'Task added');
+      } else {
+        logActivity('move', data.reply || 'Board updated');
+      }
+
+      prevDoneCount = board.done.length;
       renderBoard();
-      transcriptText.textContent = 'Board updated ✓  — try another command';
+      renderStreak();
+      const reply = data.reply || 'Board updated';
+      transcriptText.textContent = reply + '  — try another command';
+      speak(reply);
     } else {
       transcriptText.textContent = "Didn't catch a valid update — try again";
     }
@@ -376,6 +855,12 @@ async function processCommand(commandText) {
     micBtn.classList.remove('thinking');
   }
 }
+
+// ---------- Init ----------
+loadState();
+renderBoard();
+renderActivity();
+renderStreak();
 </script>
 </body>
 </html>
