@@ -13,8 +13,9 @@ export default async function handler(req, res) {
 You receive the current board state as JSON and a spoken command transcript.
 Update the board according to the command: add tasks, move tasks between columns (todo, inprogress, done), mark tasks done, remove tasks, rename tasks, or change priority (high, medium, low).
 Match tasks by closest title similarity when the command refers to an existing task.
+IMPORTANT: always preserve the existing "id" and "starred" fields of unchanged tasks exactly as given in the input board. Only assign a new id (format: "t" followed by a random number) for genuinely new tasks.
 Respond with ONLY valid JSON, no markdown fences, no explanation, matching exactly this schema:
-{"board": {"todo": [{"id": string, "title": string, "priority": "high"|"medium"|"low"}], "inprogress": [...], "done": [...]}}`;
+{"reply": "short natural confirmation sentence, under 12 words, e.g. 'Added design the login page to To Do'", "board": {"todo": [{"id": string, "title": string, "priority": "high"|"medium"|"low", "starred": boolean}], "inprogress": [...], "done": [...]}}`;
 
   const userMsg = `Current board: ${JSON.stringify(board)}\nCommand: "${commandText}"`;
 
