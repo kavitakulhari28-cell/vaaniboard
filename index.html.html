@@ -357,31 +357,15 @@ async function processCommand(commandText) {
   micBtn.classList.add('thinking');
   transcriptText.textContent = commandText + ' — thinking...';
 
-  const systemPrompt = `You are the engine behind VaaniBoard, a voice-controlled kanban board.
-You receive the current board state as JSON and a spoken command transcript.
-Update the board according to the command: add tasks, move tasks between columns (todo, inprogress, done), mark tasks done, remove tasks, rename tasks, or change priority (high, medium, low).
-Match tasks by closest title similarity when the command refers to an existing task.
-Respond with ONLY valid JSON, no markdown fences, no explanation, matching exactly this schema:
-{"board": {"todo": [{"id": string, "title": string, "priority": "high"|"medium"|"low"}], "inprogress": [...], "done": [...]}}`;
-
-  const userMsg = `Current board: ${JSON.stringify(board)}\nCommand: "${commandText}"`;
-
   try {
-    const response = await fetch("https://api.anthropic.com/v1/messages", {
+    const response = await fetch("/api/parse", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        model: "claude-sonnet-4-6",
-        max_tokens: 1000,
-        system: systemPrompt,
-        messages: [{ role: "user", content: userMsg }]
-      })
+      body: JSON.stringify({ board, commandText })
     });
     const data = await response.json();
-    const textBlock = (data.content || []).find(b => b.type === 'text');
-    let raw = textBlock ? textBlock.text : '{}';
-    raw = raw.replace(/```json|```/g, '').trim();
-    const parsed = JSON.parse(raw);
+    if (data.error) throw new Error(data.error);
+    const parsed = data;
     if (parsed.board) {
       board = {
         todo: parsed.board.todo || [],
