@@ -710,8 +710,19 @@ function speak(text) {
 }
 
 // ---------- Audio-reactive waveform ----------
+// NOTE: on mobile browsers, requesting getUserMedia for the visualizer
+// at the same time SpeechRecognition requests the mic causes a resource
+// conflict — recognition enters "listening" state but never receives audio.
+// To keep voice commands reliable everywhere, we only do real audio analysis
+// on desktop and use a lightweight simulated animation on mobile.
+const IS_MOBILE = /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent);
 let audioCtx, analyser, dataArray, rafId;
+
 async function startAudioVisualizer() {
+  if (IS_MOBILE) {
+    startFakeWaveform();
+    return;
+  }
   try {
     const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
     audioCtx = new (window.AudioContext || window.webkitAudioContext)();
@@ -721,7 +732,10 @@ async function startAudioVisualizer() {
     source.connect(analyser);
     dataArray = new Uint8Array(analyser.frequencyBinCount);
     drawWaveform();
-  } catch (e) { console.warn('Mic visualization unavailable', e); }
+  } catch (e) {
+    console.warn('Mic visualization unavailable, falling back to simulated waveform', e);
+    startFakeWaveform();
+  }
 }
 function drawWaveform() {
   analyser.getByteFrequencyData(dataArray);
@@ -729,11 +743,19 @@ function drawWaveform() {
   barsRight.forEach((bar, i) => { const v = dataArray[(i+8) % dataArray.length] || 0; bar.style.height = Math.max(6, (v/255)*54) + 'px'; });
   rafId = requestAnimationFrame(drawWaveform);
 }
+function startFakeWaveform() {
+  const animate = () => {
+    barsLeft.forEach(b => b.style.height = (6 + Math.random() * 48) + 'px');
+    barsRight.forEach(b => b.style.height = (6 + Math.random() * 48) + 'px');
+    rafId = requestAnimationFrame(() => setTimeout(animate, 60));
+  };
+  animate();
+}
 function stopAudioVisualizer() {
   if (rafId) cancelAnimationFrame(rafId);
   barsLeft.forEach(b => b.style.height = '6px');
   barsRight.forEach(b => b.style.height = '6px');
-  if (audioCtx) audioCtx.close();
+  if (audioCtx) { audioCtx.close(); audioCtx = null; }
 }
 
 // ---------- Speech recognition ----------
